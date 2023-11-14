@@ -1,24 +1,60 @@
-import {drizzle} from 'drizzle-orm/postgres-js'
-import postgres from 'postgres'
-import * as dotenv from 'dotenv'
-import * as schema from '../../migrations/schema'
-import {migrate} from 'drizzle-orm/postgres-js/migrator'
+import { pgTable,text,timestamp,uuid } from 'drizzle-orm/pg-core';
 
-dotenv.config({path:'env'})
+export const workspaces = pgTable('workspaces', {
+  id: uuid('id').defaultRandom().primaryKey().notNull(),
+  createdAt: timestamp('created_at', {
+    withTimezone: true,
+    mode: 'string',
+  })
+    .defaultNow()
+    .notNull(),
+  workspaceOwner: uuid('workspace_owner').notNull(),
+  title: text('title').notNull(),
+  iconId: text('icon_id').notNull(),
+  data: text('data'),
+  inTrash: text('in_trash'),
+  logo: text('logo'),
+  bannerUrl: text('banner_url'),
+});
 
-if(!process.env.DATABASE_URL) {
-  console.log("Cannot find the database url")
-}
+export const folders = pgTable('folders',{
+  id: uuid('id').defaultRandom().primaryKey().notNull(),
+  createdAt: timestamp('created_at', {
+    withTimezone: true,
+    mode: 'string',
+  })
+    .defaultNow()
+    .notNull(),
+  workspaceOwner: uuid('workspace_owner').notNull(),
+  title: text('title').notNull(),
+  iconId: text('icon_id').notNull(),
+  data: text('data'),
+  inTrash: text('in_trash'),
+  bannerUrl: text('banner_url'),
+  workspacesId:uuid('workspace_id').references(() => workspaces.id, {
+    onDelete:'cascade',
+  })
+})
 
-const client = postgres(process.env.DATABASE_URL as string)
+export const files = pgTable('files' , {
+  id: uuid('id').defaultRandom().primaryKey().notNull(),
+  createdAt: timestamp('created_at', {
+    withTimezone: true,
+    mode: 'string',
+  })
+    .defaultNow()
+    .notNull(),
+  workspaceOwner: uuid('workspace_owner').notNull(),
+  title: text('title').notNull(),
+  iconId: text('icon_id').notNull(),
+  data: text('data'),
+  inTrash: text('in_trash'),
+  bannerUrl: text('banner_url'),
+  workspacesId:uuid('workspace_id').references(() => workspaces.id, {
+    onDelete:'cascade',
+  }),
+  folderId: uuid('folder_id').references(() => folders.id, {
+    onDelete:'cascade'
+  }),
+});
 
-const db = drizzle(client,{schema});
-const migrateDb = async () => {
-  try {
-    console.log("Migration client")
-    await migrate(db , {migrationsFolder: 'migrations'});
-    console.log('Successfully Migrated');
-  } catch (error) {
-    console.log('Error Migrating client')
-  }
-}
